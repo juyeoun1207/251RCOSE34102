@@ -3,7 +3,7 @@
 #include <time.h>
 
 #define MAX_PROCESSES 5
-#define MAX_TIME 150
+#define MAX_TIME 100
 #define MAX_IO_REQUESTS 3
 #define TIME_QUANTUM 2
 
@@ -15,6 +15,7 @@
 #define PRIORITY_MODE 3
 #define PRIORITY_PREEMPTIVE_MODE 4
 #define RR_MODE 5
+#define LOTTERY_MODE 6
 
 
 //프로세스 상태 정의
@@ -305,8 +306,6 @@ void jobqueue_to_readyqueue(int time, int mode) {
 }
 
 
-
-/*
 // 랜덤한 프로세스 생성해서 jobQueue에 삽입
 void Create_Processes() {
     srand(time(NULL));
@@ -355,6 +354,7 @@ void Create_Processes() {
         PCB[i].response_time = -1;
         PCB[i].time_slice_counter = 0;
         PCB[i].state = NEW;
+        PCB[i].ticket_count=10;
 
         enqueue(&jobQueue, i);
     }
@@ -368,9 +368,8 @@ void Create_Processes() {
     }
     printf("\n");
 }
-*/
 
-//테스트용!!!
+/*테스트용!!!
 // 명시된 값으로 프로세스 생성 및 jobQueue에 삽입
 void Create_Processes() {
     // 프로세스 정보 명시
@@ -423,7 +422,7 @@ void Create_Processes() {
             PCB[i].io_burst_times[0], PCB[i].io_burst_times[1], PCB[i].io_burst_times[2]);
     }
     printf("\n");
-}
+} */
 
 
 int FCFS(int running_pid) {
@@ -661,6 +660,8 @@ int Schedule(int running_pid, int mode) {
         return Priority_Preemptive(running_pid);
     case RR_MODE:
         return RR(running_pid);
+    case LOTTERY_MODE:
+        return Lottery(running_pid);
     default:
         return running_pid;
     }
@@ -718,10 +719,7 @@ void Config(int mode) {
             }
         }
 
-        // 3. 스케줄링 (I/O 처리 후)
-        running_pid = Schedule(running_pid, mode);
-
-        // 4. 현재 실행 중인 프로세스가 있다면 CPU 실행
+        // 3. 현재 실행 중인 프로세스가 있다면 CPU 실행
         if (running_pid != -1) {
             Process* p = &PCB[running_pid];
 
@@ -733,27 +731,36 @@ void Config(int mode) {
             p->state = RUNNING;
 
             // I/O 요청 체크
-            int cpu_used = p->burst_time - p->remaining_time;
+            int cpu_used = p->burst_time - p->remaining_time + 1;
             int io_occurred = 0;
 
+            // 실행 중일때만 I/O 요청 처리
             for (int j = 0; j < MAX_IO_REQUESTS && !io_occurred; j++) {
                 if (!p->io_done[j] && cpu_used == p->io_request_times[j]) {
                     p->io_done[j] = 1;
                     p->state = WAITING;
                     p->io_remaining_time = p->io_burst_times[j];
                     p->time_slice_counter = 0;
+
+                    int prev_pid = running_pid;
                     enqueue(&waitingQueue, running_pid);
+
                     printf("Time %2d: P%d (CPU used: %d) -> I/O %d (duration: %d)\n",
-                        time, running_pid, cpu_used, j + 1, p->io_burst_times[j]);
+                        time, prev_pid, cpu_used, j + 1, p->io_burst_times[j]);
+
+                    if (mode == RR_MODE) {
+                        PCB[prev_pid].time_slice_counter = 0;
+                    }
+
                     running_pid = -1;
                     io_occurred = 1;
 
-                    if (mode == RR_MODE) {
-                        PCB[running_pid].time_slice_counter = 0;
-                    }
+                    break;
                 }
             }
 
+
+            // I/O 없으면 CPU 사용
             if (!io_occurred) {
                 p->remaining_time--;
                 if (p->remaining_time <= 0) {
@@ -765,39 +772,39 @@ void Config(int mode) {
             }
         }
 
-        // 5. Gantt 차트 기록: 준비 큐가 비어있을 때만 IDLE
+        // 4. 선점-스케줄링 (I/O 처리 후)
+        if (mode == SJF_PREEMPTIVE_MODE || mode == PRIORITY_PREEMPTIVE_MODE) {
+            running_pid = Schedule(running_pid, mode);
+        }
+
+
+        // 5. schedule 함수 호출
+        running_pid = Schedule(running_pid, mode);
+
+
+        // 6. 간트차트
         if (running_pid != -1) {
+            PCB[running_pid].state = RUNNING;
+            if (PCB[running_pid].start_time == -1) {
+                PCB[running_pid].start_time = time;
+                PCB[running_pid].response_time = time - PCB[running_pid].arrival_time;
+            }
+
+            // 간트차트 기록은 여기서 정확하게 수행!
             gantt_chart[time] = running_pid;
         }
         else {
-            if (is_empty(&readyQueue)) {
-                gantt_chart[time] = -1; // IDLE
-            }
-            else {
-                // 준비 큐에 프로세스가 있으면 즉시 스케줄링
-                running_pid = Schedule(running_pid, mode);
-                if (running_pid != -1) {
-                    gantt_chart[time] = running_pid;
-                    PCB[running_pid].state = RUNNING;
-                    if (PCB[running_pid].start_time == -1) {
-                        PCB[running_pid].start_time = time;
-                        PCB[running_pid].response_time = time - PCB[running_pid].arrival_time;
-                    }
-                }
-                else {
-                    gantt_chart[time] = -1; // IDLE (불가능한 경우)
-                }
-            }
+            gantt_chart[time] = -1; // IDLE
         }
 
-        // 6. READY 상태 프로세스의 대기 시간 증가
+        // 7. READY 상태 프로세스의 대기 시간 증가
         for (int i = 0; i < MAX_PROCESSES; i++) {
             if (PCB[i].state == READY) {
                 PCB[i].waiting_time++;
             }
         }
 
-        // 7. 모든 프로세스가 종료되었는지 확인
+        // 8. 모든 프로세스가 종료되었는지 확인
         all_terminated = 1;
         for (int i = 0; i < MAX_PROCESSES; i++) {
             if (PCB[i].state != TERMINATED) {
@@ -808,7 +815,7 @@ void Config(int mode) {
 
         // 모든 프로세스 종료 시 루프 탈출
         if (all_terminated) {
-            finished_time = time;
+            finished_time = time; // time + 1 안해도 되겠지?
             break;
         }
 
@@ -876,14 +883,14 @@ int main() {
     Create_Processes();
     clone_state();
 
-    // 알고리즘 목록
     const char* alg_names[] = {
         "FCFS",
         "SJF (Non-Preemptive)",
         "SJF (Preemptive)",
         "Priority (Non-Preemptive)",
         "Priority (Preemptive)",
-        "Round Robin"
+        "Round Robin",
+        "Lottery"
     };
 
     const int alg_modes[] = {
@@ -892,7 +899,8 @@ int main() {
         SJF_PREEMPTIVE_MODE,
         PRIORITY_MODE,
         PRIORITY_PREEMPTIVE_MODE,
-        RR_MODE
+        RR_MODE,
+        LOTTERY_MODE
     };
 
     int total_algorithms = sizeof(alg_modes) / sizeof(int);
