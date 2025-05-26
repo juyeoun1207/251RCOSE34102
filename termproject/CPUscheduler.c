@@ -322,7 +322,7 @@ void Create_Processes() {
             PCB[i].io_done[j] = 0; // 아직 수행X
         }
 
-        // I/O 요청 시점 정렬 (중복 제거)
+        // I/O 요청 시점 정렬 (bubble sort)
         for (int j = 0; j < MAX_IO_REQUESTS - 1; j++) {
             for (int k = j + 1; k < MAX_IO_REQUESTS; k++) {
                 if (temp_io_times[j] > temp_io_times[k]) {
