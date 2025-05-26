@@ -3,7 +3,7 @@
 #include <time.h>
 
 #define MAX_PROCESSES 5
-#define MAX_TIME 100
+#define MAX_TIME 200
 #define MAX_IO_REQUESTS 3
 #define TIME_QUANTUM 2
 
@@ -194,7 +194,7 @@ int remove_from_queue(Queue* q, int pid) {
         return pid; // 제거 성공
     }
     else {
-        return -1; 
+        return -1;
     }
 }
 
@@ -446,11 +446,13 @@ int SJF(int running_pid) {
     int min_time = 99999;
 
     int i = readyQueue.front;
-    while (i != readyQueue.rear){
+    while (i != readyQueue.rear) {
         i = (i + 1) % QUEUE_CAPACITY;
         int pid = readyQueue.items[i];
 
-        if (PCB[pid].remaining_time < min_time) {
+        if (PCB[pid].remaining_time < min_time ||
+            (PCB[pid].remaining_time == min_time && PCB[pid].arrival_time < PCB[shortest_pid].arrival_time) ||
+            (PCB[pid].remaining_time == min_time && PCB[pid].arrival_time == PCB[shortest_pid].arrival_time && pid < shortest_pid)) {
             min_time = PCB[pid].remaining_time;
             shortest_pid = pid;
         }
@@ -479,7 +481,9 @@ int SJF_Preemptive(int running_pid) {
         i = (i + 1) % QUEUE_CAPACITY;
         int pid = readyQueue.items[i];
 
-        if (PCB[pid].remaining_time < min_time) {
+        if (PCB[pid].remaining_time < min_time ||
+            (PCB[pid].remaining_time == min_time && PCB[pid].arrival_time < PCB[shortest_pid].arrival_time) ||
+            (PCB[pid].remaining_time == min_time && PCB[pid].arrival_time == PCB[shortest_pid].arrival_time && pid < shortest_pid)) {
             min_time = PCB[pid].remaining_time;
             shortest_pid = pid;
         }
@@ -491,7 +495,7 @@ int SJF_Preemptive(int running_pid) {
             PCB[shortest_pid].remaining_time < PCB[running_pid].remaining_time ||
             (PCB[shortest_pid].remaining_time == PCB[running_pid].remaining_time && PCB[shortest_pid].arrival_time < PCB[running_pid].arrival_time) ||
             (PCB[shortest_pid].remaining_time == PCB[running_pid].remaining_time && PCB[shortest_pid].arrival_time == PCB[running_pid].arrival_time && shortest_pid < running_pid)) {
-            
+
             if (running_pid != -1) {
                 PCB[running_pid].state = READY;
                 enqueue(&readyQueue, running_pid);
@@ -522,7 +526,9 @@ int Priority(int running_pid) {
         i = (i + 1) % QUEUE_CAPACITY;
         int pid = readyQueue.items[i];
 
-        if (PCB[pid].priority < highest_priority) {
+        if (PCB[pid].priority < highest_priority ||
+            (PCB[pid].priority == highest_priority && PCB[pid].arrival_time < PCB[best_pid].arrival_time) ||
+            (PCB[pid].priority == highest_priority && PCB[pid].arrival_time == PCB[best_pid].arrival_time && pid < best_pid)) {
             highest_priority = PCB[pid].priority;
             best_pid = pid;
         }
@@ -550,7 +556,9 @@ int Priority_Preemptive(int running_pid) {
         i = (i + 1) % QUEUE_CAPACITY;
         int pid = readyQueue.items[i];
 
-        if (PCB[pid].priority < highest_priority) {
+        if (PCB[pid].priority < highest_priority ||
+            (PCB[pid].priority == highest_priority && PCB[pid].arrival_time < PCB[best_pid].arrival_time) ||
+            (PCB[pid].priority == highest_priority && PCB[pid].arrival_time == PCB[best_pid].arrival_time && pid < best_pid)) {
             highest_priority = PCB[pid].priority;
             best_pid = pid;
         }
@@ -559,7 +567,9 @@ int Priority_Preemptive(int running_pid) {
     // 선점
     if (best_pid != -1) {
         if (running_pid == -1 ||
-            PCB[best_pid].priority < PCB[running_pid].priority) {
+            PCB[best_pid].priority < PCB[running_pid].priority ||
+            (PCB[best_pid].priority == PCB[running_pid].priority && PCB[best_pid].arrival_time < PCB[running_pid].arrival_time) ||
+            (PCB[best_pid].priority == PCB[running_pid].priority && PCB[best_pid].arrival_time == PCB[running_pid].arrival_time && best_pid < running_pid)) {
             if (running_pid != -1) {
                 PCB[running_pid].state = READY;
                 PCB[running_pid].time_slice_counter = 0;
@@ -604,7 +614,7 @@ int RR(int running_pid) {
     }
 
     // 타임 슬라이스 내에서 계속 실행
-    return running_pid; 
+    return running_pid;
 }
 
 
@@ -685,7 +695,7 @@ void Config(int mode) {
         gantt_chart[i] = -1;
     }
 
-    while (!all_terminated) {
+    while (time<MAX_TIME&&!all_terminated) {
         // 1. 도착한 프로세스를 JobQueue에서 readyQueue로 이동
         jobqueue_to_readyqueue(time, mode);
 
@@ -708,17 +718,17 @@ void Config(int mode) {
                     PCB[pid].time_slice_counter = 0;
 
                     switch (mode) {
-                        case PRIORITY_MODE:
-                        case PRIORITY_PREEMPTIVE_MODE:
-                            enqueue_priority(&readyQueue, pid);
-                            break;
-                        case SJF_MODE:
-                        case SJF_PREEMPTIVE_MODE:
-                            enqueue_sjf(&readyQueue, pid);
-                            break;
-                        default:
-                            enqueue(&readyQueue, pid);
-                            break;
+                    case PRIORITY_MODE:
+                    case PRIORITY_PREEMPTIVE_MODE:
+                        enqueue_priority(&readyQueue, pid);
+                        break;
+                    case SJF_MODE:
+                    case SJF_PREEMPTIVE_MODE:
+                        enqueue_sjf(&readyQueue, pid);
+                        break;
+                    default:
+                        enqueue(&readyQueue, pid);
+                        break;
                     }
                     printf("Time %2d: P%d finished I/O -> READY\n", time, pid);
                 }
@@ -785,7 +795,7 @@ void Config(int mode) {
         if (mode == SJF_PREEMPTIVE_MODE || mode == PRIORITY_PREEMPTIVE_MODE) {
             running_pid = Schedule(running_pid, mode); // 선점형은 매 시간마다 확인
         }
-        if (running_pid == -1) {
+        else if (running_pid == -1) {
             running_pid = Schedule(running_pid, mode); // 비선점형은 비어있을 때만
         }
 
@@ -824,7 +834,7 @@ void Config(int mode) {
 
         // 모든 프로세스 종료 시 루프 탈출
         if (all_terminated) {
-            finished_time = time; 
+            finished_time = time;
             break;
         }
 
@@ -875,11 +885,11 @@ void Print_GanttChart(int* gantt_chart, int end_time) {
     for (int t = 1; t <= end_time; t++) {
         if (t == end_time || gantt_chart[t] != current) {
             if (current == -1)
-                printf("%d ~ %d : IDLE\n", start, t); 
+                printf("%d ~ %d : IDLE\n", start, t);
             else
-                printf("%d ~ %d : P%d\n", start, t, current); 
+                printf("%d ~ %d : P%d\n", start, t, current);
             start = t;
-            if (t < end_time) current = gantt_chart[t]; 
+            if (t < end_time) current = gantt_chart[t];
         }
     }
 }
