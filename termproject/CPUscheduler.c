@@ -111,6 +111,7 @@ void enqueue(Queue* q, int pid) {
     q->items[q->rear] = pid;
 }
 
+
 // Priority가 높은 순서대로 큐에 삽입
 void enqueue_priority(Queue* q, int pid) {
     if (is_full(q) || in_queue(q, pid)) return;
@@ -494,7 +495,7 @@ int SJF_Preemptive(int running_pid) {
             PCB[shortest_pid].remaining_time < PCB[running_pid].remaining_time ||
             (PCB[shortest_pid].remaining_time == PCB[running_pid].remaining_time && PCB[shortest_pid].arrival_time < PCB[running_pid].arrival_time) ||
             (PCB[shortest_pid].remaining_time == PCB[running_pid].remaining_time && PCB[shortest_pid].arrival_time == PCB[running_pid].arrival_time && shortest_pid < running_pid)) {
-            // 선점 발생
+            
             if (running_pid != -1) {
                 PCB[running_pid].state = READY;
                 enqueue(&readyQueue, running_pid);
@@ -563,6 +564,7 @@ int Priority_Preemptive(int running_pid) {
         }
     }
 
+    // 선점
     if (best_pid != -1) {
         if (running_pid == -1 ||
             PCB[best_pid].priority < PCB[running_pid].priority ||
@@ -787,7 +789,7 @@ void Config(int mode) {
             }
         }
 
-        // 4~5. 스케줄링 (선점형은 즉시 교체, 비선점형은 running_pid 없을 때만)
+        // 4. 스케줄링 (선점형은 즉시 교체, 비선점형은 running_pid 없을 때만)
         if (mode == SJF_PREEMPTIVE_MODE || mode == PRIORITY_PREEMPTIVE_MODE) {
             running_pid = Schedule(running_pid, mode); // 선점형은 매 tick 마다 확인
         }
@@ -797,7 +799,7 @@ void Config(int mode) {
 
 
 
-        // 6. 간트차트
+        // 5. 간트차트
         if (running_pid != -1) {
             PCB[running_pid].state = RUNNING;
             if (PCB[running_pid].start_time == -1) {
@@ -812,14 +814,14 @@ void Config(int mode) {
             gantt_chart[time] = -1; // IDLE
         }
 
-        // 7. READY 상태 프로세스의 대기 시간 증가
+        // 6. READY 상태 프로세스의 대기 시간 증가
         for (int i = 0; i < MAX_PROCESSES; i++) {
             if (PCB[i].state == READY) {
                 PCB[i].waiting_time++;
             }
         }
 
-        // 8. 모든 프로세스가 종료되었는지 확인
+        // 7. 모든 프로세스가 종료되었는지 확인
         all_terminated = 1;
         for (int i = 0; i < MAX_PROCESSES; i++) {
             if (PCB[i].state != TERMINATED) {
