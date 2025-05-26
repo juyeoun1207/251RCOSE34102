@@ -366,62 +366,6 @@ void Create_Processes() {
     printf("\n");
 }
 
-/*
-//테스트용!!!
-// 명시된 값으로 프로세스 생성 및 jobQueue에 삽입
-void Create_Processes() {
-    // 프로세스 정보 명시
-    int arrivals[] = { 0, 5, 2, 3, 5 };
-    int bursts[] = { 7, 9, 11, 9, 8 };
-    int priorities[] = { 3, 2, 1, 5, 1 };
-    int io_times[MAX_PROCESSES][MAX_IO_REQUESTS] = {
-        {1, 2, 3},
-        {1, 2, 6},
-        {2, 3, 6},
-        {2, 5, 6},
-        {3, 4, 5}
-    };
-    int io_bursts[MAX_PROCESSES][MAX_IO_REQUESTS] = {
-        {4, 3, 2}, // P0
-        {4, 4, 4}, // P1
-        {4, 4, 2}, // P2
-        {2, 4, 3}, // P3
-        {4, 3, 4}  // P4
-    };
-
-    for (int i = 0; i < MAX_PROCESSES; i++) {
-        PCB[i].pid = i;
-        PCB[i].arrival_time = arrivals[i];
-        PCB[i].burst_time = bursts[i];
-        PCB[i].remaining_time = PCB[i].burst_time;
-        PCB[i].priority = priorities[i];
-        PCB[i].start_time = -1;
-        PCB[i].finish_time = 0;
-        PCB[i].waiting_time = 0;
-        PCB[i].turnaround_time = 0;
-        PCB[i].response_time = -1;
-        PCB[i].time_slice_counter = 0;
-        PCB[i].state = NEW;
-        PCB[i].io_remaining_time = 0;
-        for (int j = 0; j < MAX_IO_REQUESTS; j++) {
-            PCB[i].io_request_times[j] = io_times[i][j];
-            PCB[i].io_burst_times[j] = io_bursts[i][j];
-            PCB[i].io_done[j] = 0;
-        }
-        enqueue(&jobQueue, i);
-    }
-
-    // 생성된 프로세스 정보 출력 (확인용)
-    printf("Fixed Processes:\n");
-    for (int i = 0; i < MAX_PROCESSES; i++) {
-        printf("P%d: Arrival=%d, Burst=%d, Priority=%d, I/O_times=[%d,%d,%d], I/O_bursts=[%d,%d,%d]\n",
-            i, PCB[i].arrival_time, PCB[i].burst_time, PCB[i].priority,
-            PCB[i].io_request_times[0], PCB[i].io_request_times[1], PCB[i].io_request_times[2],
-            PCB[i].io_burst_times[0], PCB[i].io_burst_times[1], PCB[i].io_burst_times[2]);
-    }
-    printf("\n");
-}  */
-
 
 int FCFS(int running_pid) {
     if (running_pid != -1) {
@@ -437,13 +381,13 @@ int SJF(int running_pid) {
         return running_pid;
     }
 
-    if (is_empty(&readyQueue)) {
-        return -1;
+    if (is_empty(&readyQueue)) { 
+        return -1; 
     }
 
-    // 가장 짧은 remaining_time을 가진 프로세스 찾기
-    int shortest_pid = -1;
-    int min_time = 99999;
+    // 가장 짧은 remaining_time을 가진 프로세스 찾기 
+    int shortest_pid = -1; 
+    int min_time = 99999; 
 
     int i = readyQueue.front;
     while (i != readyQueue.rear) {
