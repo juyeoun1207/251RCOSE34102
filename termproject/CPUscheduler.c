@@ -450,9 +450,7 @@ int SJF(int running_pid) {
         i = (i + 1) % QUEUE_CAPACITY;
         int pid = readyQueue.items[i];
 
-        if (PCB[pid].remaining_time < min_time ||
-            (PCB[pid].remaining_time == min_time && PCB[pid].arrival_time < PCB[shortest_pid].arrival_time) ||
-            (PCB[pid].remaining_time == min_time && PCB[pid].arrival_time == PCB[shortest_pid].arrival_time && pid < shortest_pid)) {
+        if (PCB[pid].remaining_time < min_time) {
             min_time = PCB[pid].remaining_time;
             shortest_pid = pid;
         }
@@ -481,9 +479,7 @@ int SJF_Preemptive(int running_pid) {
         i = (i + 1) % QUEUE_CAPACITY;
         int pid = readyQueue.items[i];
 
-        if (PCB[pid].remaining_time < min_time ||
-            (PCB[pid].remaining_time == min_time && PCB[pid].arrival_time < PCB[shortest_pid].arrival_time) ||
-            (PCB[pid].remaining_time == min_time && PCB[pid].arrival_time == PCB[shortest_pid].arrival_time && pid < shortest_pid)) {
+        if (PCB[pid].remaining_time < min_time) {
             min_time = PCB[pid].remaining_time;
             shortest_pid = pid;
         }
@@ -526,9 +522,7 @@ int Priority(int running_pid) {
         i = (i + 1) % QUEUE_CAPACITY;
         int pid = readyQueue.items[i];
 
-        if (PCB[pid].priority < highest_priority ||
-            (PCB[pid].priority == highest_priority && PCB[pid].arrival_time < PCB[best_pid].arrival_time) ||
-            (PCB[pid].priority == highest_priority && PCB[pid].arrival_time == PCB[best_pid].arrival_time && pid < best_pid)) {
+        if (PCB[pid].priority < highest_priority) {
             highest_priority = PCB[pid].priority;
             best_pid = pid;
         }
@@ -556,9 +550,7 @@ int Priority_Preemptive(int running_pid) {
         i = (i + 1) % QUEUE_CAPACITY;
         int pid = readyQueue.items[i];
 
-        if (PCB[pid].priority < highest_priority ||
-            (PCB[pid].priority == highest_priority && PCB[pid].arrival_time < PCB[best_pid].arrival_time) ||
-            (PCB[pid].priority == highest_priority && PCB[pid].arrival_time == PCB[best_pid].arrival_time && pid < best_pid)) {
+        if (PCB[pid].priority < highest_priority) {
             highest_priority = PCB[pid].priority;
             best_pid = pid;
         }
@@ -567,9 +559,7 @@ int Priority_Preemptive(int running_pid) {
     // 선점
     if (best_pid != -1) {
         if (running_pid == -1 ||
-            PCB[best_pid].priority < PCB[running_pid].priority ||
-            (PCB[best_pid].priority == PCB[running_pid].priority && PCB[best_pid].arrival_time < PCB[running_pid].arrival_time) ||
-            (PCB[best_pid].priority == PCB[running_pid].priority && PCB[best_pid].arrival_time == PCB[running_pid].arrival_time && best_pid < running_pid)) {
+            PCB[best_pid].priority < PCB[running_pid].priority) {
             if (running_pid != -1) {
                 PCB[running_pid].state = READY;
                 PCB[running_pid].time_slice_counter = 0;
@@ -695,7 +685,7 @@ void Config(int mode) {
         gantt_chart[i] = -1;
     }
 
-    while (time < MAX_TIME && !all_terminated) {
+    while (!all_terminated) {
         // 1. 도착한 프로세스를 JobQueue에서 readyQueue로 이동
         jobqueue_to_readyqueue(time, mode);
 
@@ -795,7 +785,7 @@ void Config(int mode) {
         if (mode == SJF_PREEMPTIVE_MODE || mode == PRIORITY_PREEMPTIVE_MODE) {
             running_pid = Schedule(running_pid, mode); // 선점형은 매 시간마다 확인
         }
-        else if (running_pid == -1) {
+        if (running_pid == -1) {
             running_pid = Schedule(running_pid, mode); // 비선점형은 비어있을 때만
         }
 
