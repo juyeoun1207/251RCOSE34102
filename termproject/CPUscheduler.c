@@ -351,7 +351,7 @@ void Create_Processes() {
         PCB[i].response_time = -1;
         PCB[i].time_slice_counter = 0;
         PCB[i].state = NEW;
-        PCB[i].ticket_count=10;
+        PCB[i].ticket_count = rand() % 20 + 1;
 
         enqueue(&jobQueue, i);
     }
@@ -359,8 +359,8 @@ void Create_Processes() {
     // 생성된 프로세스 정보 출력 (디버깅용)
     printf("Generated Processes:\n");
     for (int i = 0; i < MAX_PROCESSES; i++) {
-        printf("P%d: Arrival=%d, Burst=%d, Priority=%d\n",
-            i, PCB[i].arrival_time, PCB[i].burst_time, PCB[i].priority);
+        printf("P%d: Arrival=%d, Burst=%d, Priority=%d, Tickets=%d\n",
+            i, PCB[i].arrival_time, PCB[i].burst_time, PCB[i].priority, PCB[i].ticket_count);
     }
     printf("\n");
 }
