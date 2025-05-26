@@ -205,7 +205,7 @@ void clone_state() {
         PCB_clone[i] = PCB[i];
     }
 
-    // jobQueue 복사 (원형 큐 구조에 맞게)
+    // jobQueue 복사
     jobQueue_clone.front = jobQueue.front;
     jobQueue_clone.rear = jobQueue.rear;
 
