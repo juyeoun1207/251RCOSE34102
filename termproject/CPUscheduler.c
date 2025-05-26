@@ -712,21 +712,23 @@ void Config(int mode) {
                 int pid = temp_waiting[i];
                 PCB[pid].io_remaining_time--;
 
+                // I/O 완료 시
                 if (PCB[pid].io_remaining_time <= 0) {
                     PCB[pid].state = READY;
                     PCB[pid].time_slice_counter = 0;
+
                     switch (mode) {
-                    case PRIORITY_MODE:
-                    case PRIORITY_PREEMPTIVE_MODE:
-                        enqueue_priority(&readyQueue, pid);
-                        break;
-                    case SJF_MODE:
-                    case SJF_PREEMPTIVE_MODE:
-                        enqueue_sjf(&readyQueue, pid);
-                        break;
-                    default:
-                        enqueue(&readyQueue, pid);
-                        break;
+                        case PRIORITY_MODE:
+                        case PRIORITY_PREEMPTIVE_MODE:
+                            enqueue_priority(&readyQueue, pid);
+                            break;
+                        case SJF_MODE:
+                        case SJF_PREEMPTIVE_MODE:
+                            enqueue_sjf(&readyQueue, pid);
+                            break;
+                        default:
+                            enqueue(&readyQueue, pid);
+                            break;
                     }
                     printf("Time %2d: P%d finished I/O -> READY\n", time, pid);
                 }
@@ -791,7 +793,7 @@ void Config(int mode) {
 
         // 4. 스케줄링 (선점형은 즉시 교체, 비선점형은 running_pid 없을 때만)
         if (mode == SJF_PREEMPTIVE_MODE || mode == PRIORITY_PREEMPTIVE_MODE) {
-            running_pid = Schedule(running_pid, mode); // 선점형은 매 tick 마다 확인
+            running_pid = Schedule(running_pid, mode); // 선점형은 매 시간마다 확인
         }
         else if (running_pid == -1) {
             running_pid = Schedule(running_pid, mode); // 비선점형은 비어있을 때만
